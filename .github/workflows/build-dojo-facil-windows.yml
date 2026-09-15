@@ -28,7 +28,20 @@ jobs:
           $expected = '94cb19a2dd37002c4293fd07aefc5eab2d71e3d03033f6f156e8f47cdea54601'
           $parts = Get-ChildItem 'dojo_payload_b64/part*.b64' | Sort-Object Name
           if ($parts.Count -ne 7) { throw "Quantidade inesperada de partes: $($parts.Count)" }
-          $base64 = ($parts | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
+          $chunks = @()
+          foreach ($part in $parts) {
+            $text = Get-Content $part.FullName -Raw
+            $compact = $text -replace '\s',''
+            $bad = [regex]::Matches($compact, '[^A-Za-z0-9+/=]')
+            Write-Host "$($part.Name): chars=$($compact.Length), invalidos=$($bad.Count)"
+            if ($bad.Count -gt 0) {
+              foreach ($m in $bad | Select-Object -First 10) { Write-Host "  invalido index=$($m.Index) char=[$($m.Value)] code=$([int][char]$m.Value)" }
+              throw "Parte inválida: $($part.Name)"
+            }
+            $chunks += $compact
+          }
+          $base64 = $chunks -join ''
+          Write-Host "Base64 total: $($base64.Length) chars"
           [IO.File]::WriteAllBytes('DojoFacil-v1.0.0-Projeto.zip', [Convert]::FromBase64String($base64))
           $actual = (Get-FileHash 'DojoFacil-v1.0.0-Projeto.zip' -Algorithm SHA256).Hash.ToLowerInvariant()
           Write-Host "ZIP SHA256: $actual"
