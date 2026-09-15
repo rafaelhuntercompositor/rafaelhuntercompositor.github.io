@@ -1,0 +1,46 @@
+name: Build Dojo Facil Windows 1.0.0
+
+on:
+  push:
+    branches:
+      - build/dojo-facil-v1-0-0
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Extract project
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Expand-Archive -Path 'dojo_payload/DojoFacil-v1.0.0-Projeto.zip' -DestinationPath 'work' -Force
+          if (-not (Test-Path 'work/DojoFacil-v1.0.0/src/DojoFacil/DojoFacil.csproj')) { throw 'Projeto não encontrado no pacote.' }
+
+      - name: Build release and run integrated self-test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location 'work/DojoFacil-v1.0.0'
+          ./build-release.ps1
+          if (-not (Test-Path 'dist/DojoFacil-Portable-Windows-x64.zip')) { throw 'Pacote portátil não foi gerado.' }
+          Get-FileHash 'dist/DojoFacil-Portable-Windows-x64.zip' -Algorithm SHA256
+
+      - name: Upload commercial Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: DojoFacil-Windows-v1.0.0
+          path: work/DojoFacil-v1.0.0/dist/DojoFacil-Portable-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 7
