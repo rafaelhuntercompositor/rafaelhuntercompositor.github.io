@@ -1,0 +1,48 @@
+name: Build Balcao Facil 1.1.0
+
+on:
+  push:
+    branches:
+      - build/balcao-facil-v1-1-0
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Extract source package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force extracted | Out-Null
+          Expand-Archive -Path 'balcao-build/BalcaoFacil-v1.1.0-Projeto.zip' -DestinationPath extracted -Force
+          if (-not (Test-Path 'extracted/BalcaoFacil-v1.1.0/build-release.cmd')) { throw 'Pacote fonte invalido: build-release.cmd nao encontrado.' }
+
+      - name: Build release and run integrated self-tests
+        shell: cmd
+        working-directory: extracted/BalcaoFacil-v1.1.0
+        run: build-release.cmd
+
+      - name: Verify commercial portable package
+        shell: pwsh
+        run: |
+          $zip = 'extracted/BalcaoFacil-v1.1.0/BalcaoFacil-Portable-Windows-x64.zip'
+          $exe = 'extracted/BalcaoFacil-v1.1.0/dist/BalcaoFacil/BalcaoFacil.exe'
+          if (-not (Test-Path $exe)) { throw 'BalcaoFacil.exe nao foi gerado.' }
+          if (-not (Test-Path $zip)) { throw 'ZIP portatil nao foi gerado.' }
+          Write-Host "EXE OK: $exe"
+          Write-Host "PORTABLE OK: $zip"
+
+      - name: Upload Balcao Facil portable Windows x64
+        uses: actions/upload-artifact@v4
+        with:
+          name: BalcaoFacil-v1.1.0-Portable-Windows-x64
+          path: extracted/BalcaoFacil-v1.1.0/BalcaoFacil-Portable-Windows-x64.zip
+          if-no-files-found: error
