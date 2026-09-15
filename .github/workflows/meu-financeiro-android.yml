@@ -34,7 +34,7 @@ jobs:
       - name: Extract Android project
         run: |
           mkdir -p android-build
-          base64 -d android_project.b64 > android-build/project.zip
+          cat android_payload/part00 android_payload/part01 android_payload/part02 android_payload/part03 android_payload/part04 | base64 -d > android-build/project.zip
           cd android-build
           unzip -q project.zip
 
