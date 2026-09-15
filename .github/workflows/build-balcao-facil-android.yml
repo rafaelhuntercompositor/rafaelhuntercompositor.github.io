@@ -12,6 +12,9 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      ANDROID_HOME: /usr/local/lib/android/sdk
 
     steps:
       - name: Checkout
@@ -23,14 +26,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK 35
+      - name: Prepare Android SDK 35
         shell: bash
         run: |
+          set -euo pipefail
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          test -x "$ANDROID_SDK_ROOT/build-tools/35.0.0/zipalign"
 
       - name: Setup Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
@@ -43,6 +46,7 @@ jobs:
           set -euo pipefail
           cat android_payload/part*.b64 > android-source.b64
           base64 -d android-source.b64 > BalcaoFacil-Android-v1.1.0-Projeto.zip
+          unzip -t BalcaoFacil-Android-v1.1.0-Projeto.zip >/dev/null
           mkdir -p extracted
           unzip -q BalcaoFacil-Android-v1.1.0-Projeto.zip -d extracted
           test -f extracted/BalcaoFacilAndroid-v1.1.0/app/build.gradle
@@ -56,10 +60,9 @@ jobs:
           sed -i "s/version '9.1.1'/version '8.7.3'/" build.gradle
           sed -i 's/compileSdk 36/compileSdk 35/' app/build.gradle
           sed -i 's/targetSdk 36/targetSdk 35/' app/build.gradle
-          echo '--- build.gradle ---'
-          cat build.gradle
-          echo '--- app/build.gradle ---'
-          cat app/build.gradle
+          grep -q "version '8.7.3'" build.gradle
+          grep -q 'compileSdk 35' app/build.gradle
+          grep -q 'targetSdk 35' app/build.gradle
 
       - name: Build release APK
         shell: bash
@@ -81,7 +84,7 @@ jobs:
           "$ANDROID_SDK_ROOT/build-tools/35.0.0/zipalign" -c -v 4 output/BalcaoFacil-Android-v1.1.0-unsigned-aligned.apk
           "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging output/BalcaoFacil-Android-v1.1.0-unsigned-aligned.apk | head -30
 
-      - name: Upload installable build candidate
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: BalcaoFacil-Android-v1.1.0-unsigned
