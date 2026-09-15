@@ -21,17 +21,20 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Validate and extract project
+      - name: Reconstruct, validate and extract project
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $zip = 'dojo_payload/DojoFacil-v1.0.0-Projeto.zip'
           $expected = '94cb19a2dd37002c4293fd07aefc5eab2d71e3d03033f6f156e8f47cdea54601'
-          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $parts = Get-ChildItem 'dojo_payload_b64/part*.b64' | Sort-Object Name
+          if ($parts.Count -ne 7) { throw "Quantidade inesperada de partes: $($parts.Count)" }
+          $base64 = ($parts | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
+          [IO.File]::WriteAllBytes('DojoFacil-v1.0.0-Projeto.zip', [Convert]::FromBase64String($base64))
+          $actual = (Get-FileHash 'DojoFacil-v1.0.0-Projeto.zip' -Algorithm SHA256).Hash.ToLowerInvariant()
           Write-Host "ZIP SHA256: $actual"
-          if ($actual -ne $expected) { throw "Payload ZIP corrompido. Esperado $expected, recebido $actual" }
+          if ($actual -ne $expected) { throw "Payload reconstruído incorreto. Esperado $expected, recebido $actual" }
           New-Item -ItemType Directory -Force -Path 'work' | Out-Null
-          tar -xf $zip -C work
+          tar -xf 'DojoFacil-v1.0.0-Projeto.zip' -C work
           if (-not (Test-Path 'work/DojoFacil-v1.0.0/src/DojoFacil/DojoFacil.csproj')) { throw 'Projeto não encontrado no pacote.' }
 
       - name: Build release and run integrated self-test
