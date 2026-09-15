@@ -34,6 +34,7 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
           test -x "$ANDROID_SDK_ROOT/build-tools/35.0.0/zipalign"
+          test -f "$ANDROID_SDK_ROOT/build-tools/35.0.0/lib/apksigner.jar"
 
       - name: Setup Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
@@ -74,7 +75,6 @@ jobs:
           cd extracted/BalcaoFacilAndroid-v1.1.0
           gradle --no-daemon clean assembleRelease
           test -f app/build/outputs/apk/release/app-release-unsigned.apk
-          ls -lah app/build/outputs/apk/release/
 
       - name: Validate and align APK
         shell: bash
@@ -86,11 +86,14 @@ jobs:
             output/BalcaoFacil-Android-v1.1.0-unsigned-aligned.apk
           "$ANDROID_SDK_ROOT/build-tools/35.0.0/zipalign" -c -v 4 output/BalcaoFacil-Android-v1.1.0-unsigned-aligned.apk
           "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging output/BalcaoFacil-Android-v1.1.0-unsigned-aligned.apk | head -30
+          cp "$ANDROID_SDK_ROOT/build-tools/35.0.0/lib/apksigner.jar" output/apksigner.jar
 
-      - name: Upload APK
+      - name: Upload APK and signing tool
         uses: actions/upload-artifact@v4
         with:
-          name: BalcaoFacil-Android-v1.1.0-unsigned
-          path: output/BalcaoFacil-Android-v1.1.0-unsigned-aligned.apk
+          name: BalcaoFacil-Android-v1.1.0-build
+          path: |
+            output/BalcaoFacil-Android-v1.1.0-unsigned-aligned.apk
+            output/apksigner.jar
           if-no-files-found: error
           retention-days: 7
