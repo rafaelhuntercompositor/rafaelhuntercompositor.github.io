@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>Academia 360 Monitor</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f1f5f9;color:#0f172a;font-family:Arial,Helvetica,sans-serif}.app{max-width:780px;margin:auto;min-height:100vh;background:#f8fafc}.top{background:#111827;color:#fff;padding:20px 16px 16px;position:sticky;top:0;z-index:10;box-shadow:0 2px 12px #0003}.brand{display:flex;align-items:center;justify-content:space-between}.brand h1{font-size:19px;margin:0}.brand small{display:block;color:#cbd5e1;margin-top:3px}.logo{font-weight:900;border:1px solid #475569;border-radius:12px;padding:8px 10px}.status{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:#dbeafe}.dot{width:9px;height:9px;border-radius:50%;background:#22c55e}.dot.off{background:#ef4444}.tabs{display:grid;grid-template-columns:repeat(5,1fr);background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:84px;z-index:9}.tab{border:0;background:#fff;padding:12px 2px;font-size:10px;font-weight:800;color:#64748b}.tab.active{color:#0f172a;border-bottom:3px solid #0f172a}.content{padding:12px}.filters{display:flex;gap:7px;overflow:auto;padding-bottom:3px;margin-bottom:12px}.filter{white-space:nowrap;border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:8px 12px;font-weight:700;font-size:11px}.filter.active{background:#111827;color:#fff;border-color:#111827}.offline{display:none;padding:10px 12px;margin-bottom:12px;border:1px solid #fecaca;border-radius:12px;background:#fff1f2;color:#991b1b;font-size:12px}.hero,.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 4px 18px #0f172a0a}.hero{padding:16px;margin-bottom:12px}.hero-label{font-size:11px;font-weight:800;color:#64748b;letter-spacing:.06em}.hero-value{font-size:29px;font-weight:900;margin-top:5px}.hero-sub{font-size:12px;color:#64748b;margin-top:5px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.card{padding:13px}.card h3{margin:0 0 10px;font-size:13px}.label{font-size:10px;color:#64748b;text-transform:uppercase;font-weight:800}.metric{font-size:17px;font-weight:900;margin:2px 0 8px}.pos{color:#15803d}.neg{color:#b91c1c}.cash-line{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #f1f5f9;padding-top:8px;margin-top:8px;font-size:11px}.open{color:#15803d;font-weight:800}.closed{color:#64748b;font-weight:800}.section-title{font-size:14px;margin:18px 2px 8px}.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #f1f5f9}.row:last-child{border-bottom:0}.row-main{min-width:0}.row-title{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row-sub{font-size:10px;color:#64748b;margin-top:3px}.row-amount{font-size:13px;font-weight:900;white-space:nowrap}.unit-pill{display:inline-block;border:1px solid #cbd5e1;border-radius:999px;padding:2px 6px;margin-right:5px;color:#475569;font-size:9px}.empty{text-align:center;color:#64748b;padding:30px 8px}.refresh{border:1px solid #475569;background:#1f2937;color:#fff;border-radius:10px;padding:7px 9px;font-size:10px;font-weight:800}.footer{text-align:center;color:#94a3b8;font-size:10px;padding:18px 0 10px}@media(max-width:560px){.grid{grid-template-columns:1fr}.content{padding:10px}.hero-value{font-size:27px}.tabs{top:84px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <div class="brand"><div><h1>ACADEMIA 360</h1><small>Monitor financeiro</small></div><div class="logo">360</div></div>
+  <div class="status"><span id="dot" class="dot"></span><span id="statusText">Conectando...</span><button id="refreshBtn" class="refresh">ATUALIZAR</button></div>
+</header>
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-tab="all">Resumo</button>
+  <button class="tab" data-tab="academy">Academia</button>
+  <button class="tab" data-tab="cafe">Café</button>
+  <button class="tab" data-tab="store">Loja</button>
+  <button class="tab" data-tab="moves">Movimentos</button>
+</nav>
+<main class="content">
+  <div id="offline" class="offline">Sem conexão. Exibindo os últimos dados salvos neste aparelho.</div>
+  <div class="filters" id="filters">
+    <button class="filter active" data-period="today">Hoje</button>
+    <button class="filter" data-period="7">7 dias</button>
+    <button class="filter" data-period="month">Mês</button>
+    <button class="filter" data-period="all">Tudo</button>
+  </div>
+  <div id="view"></div>
+  <div class="footer">Academia 360 Monitor • somente consulta</div>
+</main>
+</div>
+<script>
+'use strict';
+const CFG={url:'https://qrmurssjjkfqgtjayadq.supabase.co',key:'sb_publishable_FJbhD4-gx8_l6m7oJygYyQ_uuvFZJI3'};
+const units={academy:'Academia',cafe:'Café',store:'Loja'};
+let events=[],states=[],tab='all',period='today',lastOk='',loading=false;
+const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));
+const money=c=>(Number(c||0)/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const localDate=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function cutoff(){const n=new Date();if(period==='today')return localDate(n);if(period==='month')return localDate(n).slice(0,7)+'-01';if(period==='7'){const x=new Date(n);x.setDate(x.getDate()-6);return localDate(x)}return '0000-01-01'}
+function filtered(code){const cut=cutoff();return events.filter(e=>e.status!=='reversed'&&String(e.local_date)>=cut&&(!code||e.unit_code===code))}
+function sum(code,type){return filtered(code).filter(e=>e.movement_type===type).reduce((a,e)=>a+Number(e.amount_cents||0),0)}
+function unitCard(code){const i=sum(code,'income'),o=sum(code,'expense'),st=states.find(x=>x.unit_code===code);return '<div class="card"><h3>'+units[code]+'</h3><div class="label">Entradas</div><div class="metric pos">'+money(i)+'</div><div class="label">Saídas</div><div class="metric neg">'+money(o)+'</div><div class="cash-line"><span>Caixa atual</span><b>'+money(st?.current_cash_cents||0)+'</b></div><div class="cash-line"><span>Status</span><span class="'+(st?.cash_open?'open':'closed')+'">'+(st?.cash_open?'ABERTO':'FECHADO')+'</span></div></div>'}
+function rows(list,limit){const arr=list.slice(0,limit||100);if(!arr.length)return '<div class="empty">Nenhuma movimentação neste período.</div>';return arr.map(e=>'<div class="row"><div class="row-main"><div class="row-title"><span class="unit-pill">'+esc(units[e.unit_code]||e.unit_code)+'</span>'+esc(e.description||e.category||'Movimentação')+'</div><div class="row-sub">'+esc(e.category||'')+(e.payment_method?' • '+esc(e.payment_method):'')+' • '+new Date(e.occurred_at).toLocaleString('pt-BR')+'</div></div><div class="row-amount '+(e.movement_type==='income'?'pos':'neg')+'">'+(e.movement_type==='income'?'+':'-')+' '+money(e.amount_cents)+'</div></div>').join('')}
+function sorted(list){return list.slice().sort((a,b)=>String(b.occurred_at).localeCompare(String(a.occurred_at)))}
+function render(){let html='';if(tab==='all'){const i=sum(null,'income'),o=sum(null,'expense');html='<div class="hero"><div class="hero-label">RESULTADO DO PERÍODO</div><div class="hero-value '+(i-o>=0?'pos':'neg')+'">'+money(i-o)+'</div><div class="hero-sub">Entradas '+money(i)+' • Saídas '+money(o)+'</div></div><div class="grid">'+unitCard('academy')+unitCard('cafe')+unitCard('store')+'</div><h2 class="section-title">Últimas movimentações</h2><div class="card">'+rows(sorted(filtered()),12)+'</div>'}else if(tab==='moves'){html='<div class="hero"><div class="hero-label">MOVIMENTAÇÕES</div><div class="hero-value">'+filtered().length+'</div><div class="hero-sub">Registros no período selecionado</div></div><div class="card">'+rows(sorted(filtered()),250)+'</div>'}else{const i=sum(tab,'income'),o=sum(tab,'expense');html='<div class="hero"><div class="hero-label">'+units[tab].toUpperCase()+'</div><div class="hero-value '+(i-o>=0?'pos':'neg')+'">'+money(i-o)+'</div><div class="hero-sub">Entradas '+money(i)+' • Saídas '+money(o)+'</div></div>'+unitCard(tab)+'<h2 class="section-title">Movimentações</h2><div class="card">'+rows(sorted(filtered(tab)),150)+'</div>'}$('#view').innerHTML=html}
+async function api(path){const r=await fetch(CFG.url+'/rest/v1/'+path,{headers:{apikey:CFG.key}});if(!r.ok){const t=await r.text();throw new Error('Servidor '+r.status+(t?' • '+t.slice(0,120):''))}return r.json()}
+function save(){try{localStorage.setItem('a360-monitor-v11',JSON.stringify({events,states,lastOk}))}catch(e){}}
+function load(){try{const x=JSON.parse(localStorage.getItem('a360-monitor-v11')||'null');if(x){events=x.events||[];states=x.states||[];lastOk=x.lastOk||'';render()}}catch(e){}}
+async function refresh(){if(loading)return;loading=true;$('#statusText').textContent='Atualizando...';try{const data=await Promise.all([api('monitor_events?select=*&order=occurred_at.desc&limit=5000'),api('monitor_sector_state?select=*&order=unit_code.asc')]);events=data[0];states=data[1];lastOk=new Date().toISOString();save();$('#dot').className='dot';$('#statusText').textContent='Atualizado agora';$('#offline').style.display='none';render()}catch(e){$('#dot').className='dot off';$('#statusText').textContent=lastOk?'Offline • último dado '+new Date(lastOk).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'Sem conexão';$('#offline').style.display='block'}finally{loading=false}}
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;tab=b.dataset.tab;$$('.tab').forEach(x=>x.classList.toggle('active',x===b));render()});
+$('#filters').addEventListener('click',e=>{const b=e.target.closest('[data-period]');if(!b)return;period=b.dataset.period;$$('.filter').forEach(x=>x.classList.toggle('active',x===b));render()});
+$('#refreshBtn').addEventListener('click',refresh);
+window.addEventListener('online',refresh);window.addEventListener('offline',()=>{$('#dot').className='dot off';$('#offline').style.display='block'});
+load();refresh();setInterval(refresh,5000);
+</script>
+</body>
+</html>
