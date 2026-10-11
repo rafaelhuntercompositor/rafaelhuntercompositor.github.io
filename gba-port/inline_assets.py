@@ -30,7 +30,7 @@ def patch_gba(path):
         mem=int(base)
         data[mem:mem+len(binary)]=binary
         print(f"Embedded {len(binary)} original asset bytes into PICO-8 memory at 0x{mem:x}")
-    stripped=source[:cut]+"function loadassets() end\\n"
+    stripped=source[:cut]+"function loadassets() end\n"
     if __import__("os").environ.get("HUNTER_GBA_DIAGNOSTIC")=="1":
         old="midtext('@rafaelgameaudio',108,6)"
         assert old in stripped
