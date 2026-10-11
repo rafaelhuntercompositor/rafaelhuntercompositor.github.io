@@ -69,6 +69,8 @@ jobs:
           PY
       - name: Compilar Lua por funções e liberar memória transitória
         run: python3 gba-port/split_parser.py
+      - name: Reduzir reservas temporárias do áudio mantendo a reprodução
+        run: python3 gba-port/reclaim_audio_ram.py
       - name: Preparar GBA toolchain
         run: docker pull devkitpro/devkitarm:20260610
       - name: Gerar ROM GBA com áudio ativado
