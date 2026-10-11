@@ -82,6 +82,8 @@ jobs:
             -e DEVKITARM=/opt/devkitpro/devkitARM \
             devkitpro/devkitarm:20260610 \
             bash -lc 'make -j2 REAL8_GBA_ENABLE_AUDIO=1 REAL8_GBA_FAST_LUA=1 REAL8_GBA_SKIP_VBLANK=1'
+      - name: Mover gráficos e som embutidos no Lua para dados binários
+        run: python3 gba-port/inline_assets.py real8/src/platforms/gba/REAL8_GBA.gba
       - name: Analisar ROM e separar arquivo final
         run: |
           python3 - <<'PY'
