@@ -15,7 +15,7 @@ start=slot+16
 src=buf[start+0x4300:start+size].decode()
 variant=os.environ.get("GBA_PROBE","simple")
 if variant=="simple":
- extra="\\nfunction _update()\\n ticks=(ticks or 0)+1\\n timer=(timer or 0)+1\\n if timer>100 then state='menu' end\\nend\\n"
+ extra="\nfunction _update()\n ticks=(ticks or 0)+1\n timer=(timer or 0)+1\n if timer>100 then state='menu' end\nend\n"
 elif variant=="original":
  extra=""
 else:
@@ -28,7 +28,7 @@ src=src.replace(old,new,1)
 payload=buf[start:start+0x4300]+src.encode()
 assert len(payload)<=46755, (len(payload),size)
 buf[start:start+len(payload)]=payload
-buf[start+len(payload):start+46755]=b'\\0'*(46755-len(payload))
+buf[start+len(payload):start+46755]=b'\0'*(46755-len(payload))
 struct.pack_into('<II',buf,slot+8,len(payload),len(payload))
 p.write_bytes(buf)
 print('Patched',p,'probe',variant,'Lua bytes',len(src),'sha',hashlib.sha256(buf).hexdigest())
