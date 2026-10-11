@@ -68,24 +68,18 @@ jobs:
           target.parent.mkdir(parents=True,exist_ok=True)
           shutil.copyfile(p,target)
           PY
-      - name: Preparar emulador para diagnóstico
+      - name: Preparar mGBA headless
         continue-on-error: true
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y mgba-sdl xvfb scrot
-      - name: Registrar inicialização no mGBA
+          sudo apt-get install -y libmgba-dev libpng-dev
+          git clone --depth 1 https://github.com/JohnnySun/gba-rom-debugger.git
+          make -C gba-rom-debugger MGBA_PREFIX=/usr LIBPNG_PREFIX=/usr bin/gba-walk
+      - name: Rodar inicialização no mGBA sem interface
         continue-on-error: true
         run: |
           mkdir -p output/screens
-          xvfb-run -a -s "-screen 0 1024x768x24" bash -c '
-            mgba -1 output/LAST_DAWN_HUNTER_GBA.gba > output/screens/mgba.log 2>&1 &
-            EMUPID=$!
-            sleep 10
-            scrot output/screens/last_dawn_10s.png
-            sleep 15
-            scrot output/screens/last_dawn_25s.png
-            kill "$EMUPID" 2>/dev/null || true
-          '
+          gba-rom-debugger/bin/gba-walk output/LAST_DAWN_HUNTER_GBA.gba output/screens run:90 snap:frame90 run:510 snap:frame600
       - name: Guardar capturas do emulador
         if: always()
         uses: actions/upload-artifact@v4
