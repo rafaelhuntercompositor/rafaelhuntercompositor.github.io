@@ -31,6 +31,12 @@ jobs:
       - name: Inspecionar exportação HTML publicada
         run: python inspect_html.py
         working-directory: android-last-dawn
+      - name: Integrar jogo completo no APK offline
+        run: |
+          mkdir -p app/src/main/assets/game
+          cp downloaded/index.html downloaded/last_dawn.js app/src/main/assets/game/
+          test -s app/src/main/assets/game/last_dawn.js
+        working-directory: android-last-dawn
       - name: Arquivar arquivos HTML inspecionados
         if: always()
         uses: actions/upload-artifact@v4
