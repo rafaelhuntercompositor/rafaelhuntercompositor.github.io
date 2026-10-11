@@ -51,6 +51,31 @@ jobs:
           target.parent.mkdir(parents=True,exist_ok=True)
           shutil.copyfile(p,target)
           PY
+      - name: Preparar emulador para diagnóstico
+        continue-on-error: true
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y mgba-sdl xvfb scrot
+      - name: Registrar inicialização no mGBA
+        continue-on-error: true
+        run: |
+          mkdir -p output/screens
+          xvfb-run -a -s "-screen 0 1024x768x24" bash -c '
+            mgba -1 output/LAST_DAWN_HUNTER_GBA.gba > output/screens/mgba.log 2>&1 &
+            EMUPID=$!
+            sleep 10
+            scrot output/screens/last_dawn_10s.png
+            sleep 15
+            scrot output/screens/last_dawn_25s.png
+            kill "$EMUPID" 2>/dev/null || true
+          '
+      - name: Guardar capturas do emulador
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LAST-DAWN-GBA-TESTE-EMULADOR
+          path: output/screens/
+          if-no-files-found: ignore
       - name: Disponibilizar ROM original GBA
         uses: actions/upload-artifact@v4
         with:
