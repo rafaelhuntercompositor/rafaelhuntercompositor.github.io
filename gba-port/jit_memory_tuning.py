@@ -9,5 +9,7 @@ patterns=[
 for a,b in patterns:
  assert a in s, f"Missing {a}"
  s=s.replace(a,b,1)
+import re
+s=re.sub(r"(?<![A-Za-z0-9_])IWRAM_CODE(?![A-Za-z0-9_])","",s)
 p.write_text(s)
 print("Moved GBA blit code from small IWRAM to ROM to allow JIT to fit.")
