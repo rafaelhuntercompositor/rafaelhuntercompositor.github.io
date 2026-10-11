@@ -101,6 +101,10 @@ jobs:
           target.parent.mkdir(parents=True,exist_ok=True)
           shutil.copyfile(p,target)
           PY
+      - name: Criar ROM de diagnóstico com renderização mínima
+        run: |
+          cp output/LAST_DAWN_HUNTER_GBA.gba output/TESTE_RENDER_MINIMO.gba
+          GBA_PROBE=drawlight python3 gba-port/quick_probe.py output/TESTE_RENDER_MINIMO.gba
       - name: Preparar mGBA headless
         continue-on-error: true
         run: |
@@ -112,7 +116,9 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p output/screens
-          gba-rom-debugger/bin/gba-walk output/LAST_DAWN_HUNTER_GBA.gba output/screens run:90 snap:frame90 run:510 snap:frame600
+          mkdir -p output/screens/render-minimo output/screens/original
+          gba-rom-debugger/bin/gba-walk output/TESTE_RENDER_MINIMO.gba output/screens/render-minimo run:90 snap:frame90 run:510 snap:frame600
+          gba-rom-debugger/bin/gba-walk output/LAST_DAWN_HUNTER_GBA.gba output/screens/original run:90 snap:frame90 run:510 snap:frame600
       - name: Guardar capturas do emulador
         if: always()
         uses: actions/upload-artifact@v4
