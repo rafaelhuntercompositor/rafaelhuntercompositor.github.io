@@ -28,6 +28,16 @@ jobs:
           packages: 'platform-tools'
       - name: Instalar plataforma
         run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Inspecionar exportação HTML publicada
+        run: python inspect_html.py
+        working-directory: android-last-dawn
+      - name: Arquivar arquivos HTML inspecionados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hunter-Last-Dawn-HTML-Check
+          path: android-last-dawn/downloaded/
+          if-no-files-found: ignore
       - name: Preparar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
