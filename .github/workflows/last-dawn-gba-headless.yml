@@ -1,0 +1,48 @@
+name: Last Dawn GBA — Headless QA
+on:
+  push:
+    branches: [hunter-last-dawn-gba-port]
+    paths:
+      - '.github/workflows/last-dawn-gba-headless.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/last-dawn-gba-headless.yml'
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  headless-gba-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Recuperar ROM compilada anteriormente
+        uses: actions/download-artifact@v4
+        with:
+          name: LAST-DAWN-ROM-GBA
+          run-id: '38105812021'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: rom
+      - name: Obter testes visuais mGBA
+        uses: actions/checkout@v4
+        with:
+          repository: JohnnySun/gba-rom-debugger
+          path: gba-rom-debugger
+      - name: Instalar bibliotecas headless de GBA
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libmgba-dev libpng-dev
+      - name: Compilar teste de captura de tela
+        run: make -C gba-rom-debugger MGBA_PREFIX=/usr LIBPNG_PREFIX=/usr bin/gba-walk
+      - name: Testar tela de inicialização e carregamento
+        run: |
+          mkdir -p frames
+          gba-rom-debugger/bin/gba-walk rom/LAST_DAWN_HUNTER_GBA.gba frames run:90 snap:frame90 run:510 snap:frame600
+      - name: Publicar capturas para avaliação
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LAST-DAWN-GBA-HEADLESS-FRAMES
+          path: frames/
+          if-no-files-found: ignore
