@@ -24,7 +24,7 @@ jobs:
           path: rom
       - name: Isolar temporariamente ciclo Lua _update
         run: |
-          GBA_PROBE=simple python3 gba-port/quick_probe.py rom/LAST_DAWN_HUNTER_GBA.gba
+          GBA_PROBE=drawlight python3 gba-port/quick_probe.py rom/LAST_DAWN_HUNTER_GBA.gba
       - name: Instalar bibliotecas de emulador
         run: |
           sudo apt-get update -qq
