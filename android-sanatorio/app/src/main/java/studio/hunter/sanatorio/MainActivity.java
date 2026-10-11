@@ -29,6 +29,7 @@ import java.util.Map;
 
 public class MainActivity extends Activity {
     private WebView browser;
+    private SanatorioAudioBridge nativeAudio;
     private static final String BASE = "https://hunter.mobile.local/";
     private static final String TAG = "SanatorioAndroid";
 
@@ -40,6 +41,8 @@ public class MainActivity extends Activity {
             getWindow().setNavigationBarColor(Color.BLACK);
             hideSystemBars();
             browser = new WebView(this);
+            nativeAudio = new SanatorioAudioBridge(this);
+            browser.addJavascriptInterface(nativeAudio,"SanatorioAudio");
             browser.setBackgroundColor(Color.rgb(6,9,8));
             browser.setOverScrollMode(View.OVER_SCROLL_NEVER);
             browser.setVerticalScrollBarEnabled(false);
@@ -194,13 +197,14 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onResume() {
-        super.onResume();hideSystemBars();if(browser!=null)browser.onResume();
+        super.onResume();hideSystemBars();if(browser!=null)browser.onResume();if(nativeAudio!=null)nativeAudio.onAppResume();
     }
     @Override protected void onPause() {
-        if(browser!=null)browser.onPause();super.onPause();
+        if(browser!=null)browser.onPause();if(nativeAudio!=null)nativeAudio.onAppPause();super.onPause();
     }
     @Override protected void onDestroy() {
         if(browser!=null) {browser.destroy();browser=null;}
+        if(nativeAudio!=null) {nativeAudio.destroy();nativeAudio=null;}
         super.onDestroy();
     }
     @Override public void onBackPressed() {
