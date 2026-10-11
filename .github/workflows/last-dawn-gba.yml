@@ -25,6 +25,23 @@ jobs:
           path: real8
       - name: Recuperar e verificar jogo do itch.io
         run: python3 gba-port/recover_cart.py real8/src/platforms/gba/game.p8.png
+      - name: Reduzir framebuffer ao PICO-8 e expandir heap Lua
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          base=Path("real8/src/platforms/gba")
+          file=base/"gba_host.cpp"
+          s=file.read_text()
+          old="constexpr size_t kGbaLinearFbBytes = 240u * 160u;"
+          assert old in s
+          file.write_text(s.replace(old,"constexpr size_t kGbaLinearFbBytes = 128u * 128u;"))
+          make=base/"Makefile"
+          t=make.read_text()
+          old="__heap_size=0x10000"
+          assert old in t
+          make.write_text(t.replace(old,"__heap_size=0x18000"))
+          print("Framebuffer PICO-8: 128x128. Heap Lua: 96 KiB.")
+          PY
       - name: Preparar GBA toolchain
         run: docker pull devkitpro/devkitarm:20260610
       - name: Gerar ROM GBA com áudio ativado
