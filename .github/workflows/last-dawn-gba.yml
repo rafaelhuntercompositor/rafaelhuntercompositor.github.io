@@ -77,7 +77,7 @@ jobs:
             -e DEVKITPRO=/opt/devkitpro \
             -e DEVKITARM=/opt/devkitpro/devkitARM \
             devkitpro/devkitarm:20260610 \
-            bash -lc 'make -j2 REAL8_GBA_ENABLE_AUDIO=1 REAL8_GBA_FAST_LUA=1 REAL8_GBA_SKIP_VBLANK=1'
+            bash -lc 'make -j2 REAL8_GBA_ENABLE_AUDIO=0 REAL8_GBA_FAST_LUA=1 REAL8_GBA_SKIP_VBLANK=1'
       - name: Analisar ROM e separar arquivo final
         run: |
           python3 - <<'PY'
