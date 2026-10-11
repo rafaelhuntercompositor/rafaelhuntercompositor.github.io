@@ -1,0 +1,150 @@
+name: Last Dawn — GBA ROM
+on:
+  push:
+    branches: [hunter-last-dawn-gba-port]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'gba-port/**'
+      - '.github/workflows/last-dawn-gba.yml'
+  workflow_dispatch:
+jobs:
+  compile-gba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Obter receita da ROM
+        uses: actions/checkout@v4
+      - name: Obter runtime Real8 para GBA
+        uses: actions/checkout@v4
+        with:
+          repository: natureglass/real8-explorer
+          ref: main
+          path: real8
+      - name: Recuperar e verificar jogo do itch.io
+        run: python3 gba-port/recover_cart.py real8/src/platforms/gba/game.p8.png
+      - name: Reduzir framebuffer ao PICO-8 e expandir heap Lua
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          base=Path("real8/src/platforms/gba")
+          file=base/"gba_host.cpp"
+          s=file.read_text()
+          old="constexpr size_t kGbaLinearFbBytes = 240u * 160u;"
+          assert old in s
+          file.write_text(s.replace(old,"constexpr size_t kGbaLinearFbBytes = 128u * 128u;"))
+          make=base/"Makefile"
+          t=make.read_text()
+          old="__heap_size=0x10000"
+          assert old in t
+          make.write_text(t.replace(old,"__heap_size=0x25000"))
+          print("Framebuffer PICO-8: 128x128. Heap Lua: 96 KiB.")
+          PY
+      - name: Liberar 64 KiB de wavetable não utilizada no GBA
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          core=Path("real8/src/core")
+          p=core/"real8_vm.h"
+          s=p.read_text()
+          old="  float wavetables[8][2048]; \n  void init_wavetables();"
+          assert old in s, "Wavetable declaration unexpected"
+          s=s.replace(old,'#if !defined(__GBA__)\n  float wavetables[8][2048];\n  void init_wavetables();\n#endif',1)
+          p.write_text(s)
+          p=core/"real8_vm.cpp"
+          s=p.read_text()
+          old="#if !defined(__GBA__) || REAL8_GBA_ENABLE_AUDIO\n    init_wavetables();\n#endif"
+          assert old in s, "Wavetable call unexpected"
+          s=s.replace(old,"#if !defined(__GBA__)\n    init_wavetables();\n#endif",1)
+          p.write_text(s)
+          p=core/"real8_bindings.cpp"
+          s=p.read_text()
+          old="#if !defined(__GBA__) || REAL8_GBA_ENABLE_AUDIO\nvoid Real8VM::init_wavetables()"
+          assert old in s, "Wavetable function unexpected"
+          s=s.replace(old,"#if !defined(__GBA__)\nvoid Real8VM::init_wavetables()",1)
+          p.write_text(s)
+          print("Removed 64 KiB unused runtime wavetables from GBA VM; preserved sound engine.")
+          PY
+      - name: Compilar Lua por funções e liberar memória transitória
+        run: python3 gba-port/split_parser.py
+      - name: Reduzir reservas temporárias do áudio mantendo a reprodução
+        run: python3 gba-port/reclaim_audio_ram.py
+      - name: Sintese de audio ARM7 com inteiros (PICO-8 original)
+        run: python3 gba-port/fast_integer_audio.py
+      - name: Acelerar escrita de textos PICO-8 no framebuffer GBA
+        run: python3 gba-port/fast_gba_text.py
+      - name: Preparar GBA toolchain
+        run: docker pull devkitpro/devkitarm:20260610
+      - name: Gerar ROM GBA com áudio ativado
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/real8:/work" \
+            -w /work/src/platforms/gba \
+            -e DEVKITPRO=/opt/devkitpro \
+            -e DEVKITARM=/opt/devkitpro/devkitARM \
+            devkitpro/devkitarm:20260610 \
+            bash -lc 'make -j2 REAL8_GBA_ENABLE_AUDIO=1 REAL8_GBA_FAST_LUA=1 REAL8_GBA_SKIP_VBLANK=1'
+      - name: Mover gráficos e som embutidos no Lua para dados binários
+        run: |
+          sudo chmod a+w real8/src/platforms/gba/REAL8_GBA.gba
+          python3 gba-port/inline_assets.py real8/src/platforms/gba/REAL8_GBA.gba
+      - name: Analisar ROM e separar arquivo final
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          p=Path("real8/src/platforms/gba/REAL8_GBA.gba")
+          data=p.read_bytes()
+          assert len(data)>=192 and len(data)<=32*1024*1024, (p,len(data))
+          assert data[0xB2]==0x96, "ROM inválida: marcador GBA ausente"
+          print("ROM GBA gerada, bytes:",len(data))
+          print("Nome no cabeçalho:",data[0xA0:0xAC])
+          target=Path("output/LAST_DAWN_HUNTER_GBA.gba")
+          target.parent.mkdir(parents=True,exist_ok=True)
+          shutil.copyfile(p,target)
+          PY
+      - name: Criar ROM de diagnóstico com renderização mínima
+        run: |
+          cp output/LAST_DAWN_HUNTER_GBA.gba output/TESTE_RENDER_MINIMO.gba
+          GBA_PROBE=drawlight python3 gba-port/quick_probe.py output/TESTE_RENDER_MINIMO.gba
+          cp output/LAST_DAWN_HUNTER_GBA.gba output/TESTE_ORIGINAL_COM_CONTADOR.gba
+          GBA_PROBE=original python3 gba-port/quick_probe.py output/TESTE_ORIGINAL_COM_CONTADOR.gba
+      - name: Preparar mGBA headless
+        continue-on-error: true
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libmgba-dev libpng-dev
+          git clone --depth 1 https://github.com/JohnnySun/gba-rom-debugger.git
+          make -C gba-rom-debugger MGBA_PREFIX=/usr LIBPNG_PREFIX=/usr bin/gba-walk
+      - name: Rodar inicialização no mGBA sem interface
+        continue-on-error: true
+        run: |
+          mkdir -p output/screens
+          mkdir -p output/screens/render-minimo output/screens/original
+          gba-rom-debugger/bin/gba-walk output/TESTE_RENDER_MINIMO.gba output/screens/render-minimo run:90 snap:frame90 run:510 snap:frame600
+          gba-rom-debugger/bin/gba-walk output/TESTE_ORIGINAL_COM_CONTADOR.gba output/screens/original run:90 snap:frame90 run:510 snap:frame600
+      - name: Guardar capturas do emulador
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LAST-DAWN-GBA-TESTE-EMULADOR
+          path: output/screens/
+          if-no-files-found: ignore
+      - name: Disponibilizar ROM original GBA
+        uses: actions/upload-artifact@v4
+        with:
+          name: LAST-DAWN-ROM-GBA
+          path: output/LAST_DAWN_HUNTER_GBA.gba
+          retention-days: 90
+          if-no-files-found: error
+      - name: Guardar mapa técnico para diagnóstico
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LAST-DAWN-GBA-MAPA-BUILD
+          path: |
+            real8/src/platforms/gba/REAL8_GBA.map
+            real8/src/platforms/gba/REAL8_GBA.elf
+          if-no-files-found: ignore
