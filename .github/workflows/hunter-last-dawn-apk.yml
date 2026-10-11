@@ -57,3 +57,15 @@ jobs:
           name: Hunter-Last-Dawn-Android-APK
           path: android-last-dawn/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Separar utilitário oficial de assinatura do Android
+        run: |
+          SIGN_JAR=$(find "$ANDROID_HOME/build-tools" -name apksigner.jar -print -quit)
+          test -s "$SIGN_JAR"
+          cp "$SIGN_JAR" ./apksigner.jar
+      - name: Disponibilizar assinatura Android
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-APK-Signing-Tool
+          path: apksigner.jar
+          if-no-files-found: error
