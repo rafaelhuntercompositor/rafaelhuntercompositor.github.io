@@ -18,14 +18,17 @@ if variant=="simple":
  a=src.index("function _update()")
  b=src.index("function theme()",a)
  src=src[:a]+"function _update()\n ticks=(ticks or 0)+1\n timer=(timer or 0)+1\n if timer>100 then state='menu' end\nend\n\n"+src[b:]
+elif variant=="drawlight":
+ a=src.index("function _draw()")
+ b=src.index("function loadassets()",a)
+ src=src[:a]+"function _draw()\n cls(0)\n print('ticks:'..tostr(ticks),6,6,7)\nend\n\n"+src[b:]
 elif variant=="original":
  pass
 else:
  raise ValueError(variant)
 old="midtext('@rafaelgameaudio',108,6)"
 new=old+" print('t='..tostr(timer)..' k='..tostr(ticks),6,118,7)"
-assert old in src
-src=src.replace(old,new,1)
+if old in src: src=src.replace(old,new,1)
 payload=buf[start:start+0x4300]+src.encode()
 assert len(payload)<=46755, (len(payload),size)
 buf[start:start+len(payload)]=payload
