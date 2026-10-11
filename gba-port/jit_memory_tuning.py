@@ -10,6 +10,6 @@ for a,b in patterns:
  assert a in s, f"Missing {a}"
  s=s.replace(a,b,1)
 import re
-s=re.sub(r"(?<![A-Za-z0-9_])IWRAM_CODE(?![A-Za-z0-9_])","",s)
+s="\n".join(line if line.lstrip().startswith(("#define IWRAM_CODE", "#undef IWRAM_CODE")) else re.sub(r"(?<![A-Za-z0-9_])IWRAM_CODE(?![A-Za-z0-9_])","",line) for line in s.split("\n"))
 p.write_text(s)
 print("Moved GBA blit code from small IWRAM to ROM to allow JIT to fit.")
