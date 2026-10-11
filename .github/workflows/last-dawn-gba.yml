@@ -1,0 +1,64 @@
+name: Last Dawn — GBA ROM
+on:
+  push:
+    branches: [hunter-last-dawn-gba-port]
+  workflow_dispatch:
+jobs:
+  compile-gba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Obter receita da ROM
+        uses: actions/checkout@v4
+      - name: Obter runtime Real8 para GBA
+        uses: actions/checkout@v4
+        with:
+          repository: natureglass/real8-explorer
+          ref: main
+          path: real8
+      - name: Recuperar e verificar jogo do itch.io
+        run: python3 gba-port/recover_cart.py real8/src/platforms/gba/game.p8.png
+      - name: Preparar GBA toolchain
+        run: docker pull devkitpro/devkitarm:20260610
+      - name: Gerar ROM GBA com áudio ativado
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/real8:/work" \
+            -w /work/src/platforms/gba \
+            -e DEVKITPRO=/opt/devkitpro \
+            -e DEVKITARM=/opt/devkitpro/devkitARM \
+            devkitpro/devkitarm:20260610 \
+            bash -lc 'make -j2 REAL8_GBA_ENABLE_AUDIO=1 REAL8_GBA_FAST_LUA=1 REAL8_GBA_SKIP_VBLANK=1'
+      - name: Analisar ROM e separar arquivo final
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          p=Path("real8/src/platforms/gba/REAL8_GBA.gba")
+          data=p.read_bytes()
+          assert len(data)>=192 and len(data)<=32*1024*1024, (p,len(data))
+          assert data[0xB2]==0x96, "ROM inválida: marcador GBA ausente"
+          print("ROM GBA gerada, bytes:",len(data))
+          print("Nome no cabeçalho:",data[0xA0:0xAC])
+          target=Path("output/LAST_DAWN_HUNTER_GBA.gba")
+          target.parent.mkdir(parents=True,exist_ok=True)
+          shutil.copyfile(p,target)
+          PY
+      - name: Disponibilizar ROM original GBA
+        uses: actions/upload-artifact@v4
+        with:
+          name: LAST-DAWN-ROM-GBA
+          path: output/LAST_DAWN_HUNTER_GBA.gba
+          retention-days: 90
+          if-no-files-found: error
+      - name: Guardar mapa técnico para diagnóstico
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LAST-DAWN-GBA-MAPA-BUILD
+          path: |
+            real8/src/platforms/gba/REAL8_GBA.map
+            real8/src/platforms/gba/REAL8_GBA.elf
+          if-no-files-found: ignore
