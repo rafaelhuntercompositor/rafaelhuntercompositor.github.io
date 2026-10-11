@@ -4,7 +4,7 @@
     android:icon="@drawable/hunter_icon" android:label="Last Dawn | Hunter"
     android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.NoActionBar">
     <activity android:name=".MainActivity" android:exported="true"
-      android:screenOrientation="landscape" android:configChanges="orientation|screenSize|keyboardHidden">
+      android:screenOrientation="sensorLandscape" android:configChanges="orientation|screenSize|keyboardHidden">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
