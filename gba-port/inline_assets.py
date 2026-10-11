@@ -30,7 +30,12 @@ def patch_gba(path):
         mem=int(base)
         data[mem:mem+len(binary)]=binary
         print(f"Embedded {len(binary)} original asset bytes into PICO-8 memory at 0x{mem:x}")
-    stripped=source[:cut]+"function loadassets() end\n"
+    stripped=source[:cut]+"function loadassets() end\\n"
+    if __import__("os").environ.get("HUNTER_GBA_DIAGNOSTIC")=="1":
+        old="midtext('@rafaelgameaudio',108,6)"
+        assert old in stripped
+        stripped=stripped.replace(old,old+" print('t='..tostr(timer)..' f='..tostr(ticks),10,118,7)",1)
+        print("Diagnostic Lua splash timer overlay injected.")
     payload=data[:fixed_size]+stripped.encode("utf-8")
     assert len(payload)<old_size
     rom[start:start+len(payload)]=payload
