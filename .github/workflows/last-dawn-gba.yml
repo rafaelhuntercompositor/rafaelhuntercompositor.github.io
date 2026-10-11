@@ -2,6 +2,11 @@ name: Last Dawn — GBA ROM
 on:
   push:
     branches: [hunter-last-dawn-gba-port]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'gba-port/**'
+      - '.github/workflows/last-dawn-gba.yml'
   workflow_dispatch:
 jobs:
   compile-gba:
