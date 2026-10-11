@@ -1,0 +1,41 @@
+name: Hunter Last Dawn APK
+on:
+  push:
+    branches:
+      - hunter-last-dawn-android-apk
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'android-last-dawn/**'
+      - '.github/workflows/hunter-last-dawn-apk.yml'
+jobs:
+  build-android-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Buscar fontes
+        uses: actions/checkout@v4
+      - name: Instalar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Instalar SDK Android
+        uses: android-actions/setup-android@v3
+      - name: Instalar plataforma
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Preparar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Compilar APK debug
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+        working-directory: android-last-dawn
+      - name: Arquivar APK instalável
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hunter-Last-Dawn-Android-APK
+          path: android-last-dawn/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
