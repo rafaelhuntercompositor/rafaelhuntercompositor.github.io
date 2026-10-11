@@ -22,8 +22,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Use preinstalled Android SDK
+        run: |
+          echo "ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}" >> "${GITHUB_ENV}"
+          ls -la "${ANDROID_HOME:-/usr/local/lib/android/sdk}/cmdline-tools"
       - name: Android platform
         run: |
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
