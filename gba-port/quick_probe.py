@@ -29,6 +29,7 @@ else:
 old="midtext('@rafaelgameaudio',108,6)"
 new=old+" print('t='..tostr(timer)..' k='..tostr(ticks),6,118,7)"
 if old in src: src=src.replace(old,new,1)
+src=re.sub(r"(?m)^--[^\n]*\n","",src)
 payload=buf[start:start+0x4300]+src.encode()
 assert len(payload)<=46755, (len(payload),size)
 buf[start:start+len(payload)]=payload
