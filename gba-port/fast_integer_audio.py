@@ -4,7 +4,7 @@ p=Path("real8/src/core/real8_audio.cpp")
 s=p.read_text()
 sig="void AudioEngine::generateSamples(int16_t* out_buffer, int count) {"
 assert s.count(sig)==1
-inc=[min(4294967295,int(round(65.406*(2**(i/48))*4294967296/22050))) for i in range(256)]
+inc=[min(4294967295,int(round(65.406*(2**(i/48))*4294967296/8192))) for i in range(256)]
 table=",".join(str(v)+"u" for v in inc)
 fast=r"""
     // ARM7TDMI has no FPU. Render with integer phase oscillators and update
@@ -22,9 +22,9 @@ fast=r"""
     }
     for(int i=0;i<count;++i){
         sequencer+=120u;
-        bool fresh=(sequencer>=22050u);
+        bool fresh=(sequencer>=8192u);
         if(fresh){
-            sequencer-=22050u;
+            sequencer-=8192u;
             run_tick();
         }
         if(i==0 || fresh){
@@ -128,3 +128,26 @@ assert s.count(old)==1
 s=s.replace(old,"\n#endif\n}\n\nvoid AudioEngine::update(IReal8Host *host) {",1)
 p.write_text(s)
 print("Optimized GBA audio: per-sample integer mixer, 120Hz envelope/pitch updates, original 22.05kHz output.")
+
+# GBA uses a modest 8192 Hz sound rate: exact hardware timer subdivision.
+h=Path("real8/src/core/real8_audio.h")
+t=h.read_text()
+t=t.replace('    #if defined(__3DS__)', '''    #if defined(__GBA__)
+    static constexpr int SAMPLE_RATE_NUM = 8192;
+    static constexpr int SAMPLE_RATE_DEN = 1;
+    static constexpr float SAMPLE_RATE = 8192.0f;
+    #elif defined(__3DS__)''',1)
+assert 'SAMPLE_RATE_NUM = 8192' in t
+h.write_text(t)
+g=Path("real8/src/platforms/gba/gba_host.hpp")
+u=g.read_text()
+assert "kAudioSampleRate = 22050" in u and "kAudioFrameSamples = 368" in u
+u=u.replace("kAudioSampleRate = 22050","kAudioSampleRate = 8192").replace("kAudioFrameSamples = 368","kAudioFrameSamples = 137")
+g.write_text(u)
+# Avoid audio backlog spikes while CPU is catching up with the game state.
+a=p.read_text()
+old="    if (gen_total <= 0) return;"
+assert old in a
+a=a.replace(old,"    if (gen_total > 274) gen_total = 274;\n"+old,1)
+p.write_text(a)
+print("GBA audio output 8.192 kHz, capped audio debt, preserving sequencer.")
