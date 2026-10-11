@@ -5,6 +5,11 @@ on:
     paths:
       - 'android-sanatorio/**'
       - '.github/workflows/sanatorio-android-shell.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'android-sanatorio/**'
+      - '.github/workflows/sanatorio-android-shell.yml'
   workflow_dispatch:
 jobs:
   build-shell:
