@@ -42,6 +42,31 @@ jobs:
           make.write_text(t.replace(old,"__heap_size=0x18000"))
           print("Framebuffer PICO-8: 128x128. Heap Lua: 96 KiB.")
           PY
+      - name: Liberar 64 KiB de wavetable não utilizada no GBA
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          core=Path("real8/src/core")
+          p=core/"real8_vm.h"
+          s=p.read_text()
+          old="  float wavetables[8][2048]; \n  void init_wavetables();"
+          assert old in s, "Wavetable declaration unexpected"
+          s=s.replace(old,'#if !defined(__GBA__)\n  float wavetables[8][2048];\n  void init_wavetables();\n#endif',1)
+          p.write_text(s)
+          p=core/"real8_vm.cpp"
+          s=p.read_text()
+          old="#if !defined(__GBA__) || REAL8_GBA_ENABLE_AUDIO\n    init_wavetables();\n#endif"
+          assert old in s, "Wavetable call unexpected"
+          s=s.replace(old,"#if !defined(__GBA__)\n    init_wavetables();\n#endif",1)
+          p.write_text(s)
+          p=core/"real8_bindings.cpp"
+          s=p.read_text()
+          old="#if !defined(__GBA__) || REAL8_GBA_ENABLE_AUDIO\nvoid Real8VM::init_wavetables()"
+          assert old in s, "Wavetable function unexpected"
+          s=s.replace(old,"#if !defined(__GBA__)\nvoid Real8VM::init_wavetables()",1)
+          p.write_text(s)
+          print("Removed 64 KiB unused runtime wavetables from GBA VM; preserved sound engine.")
+          PY
       - name: Preparar GBA toolchain
         run: docker pull devkitpro/devkitarm:20260610
       - name: Gerar ROM GBA com áudio ativado
