@@ -86,6 +86,8 @@ jobs:
         run: |
           sudo chmod a+w real8/src/platforms/gba/REAL8_GBA.gba
           python3 gba-port/inline_assets.py real8/src/platforms/gba/REAL8_GBA.gba
+      - name: Isolar loop Lua para localizar travamento (diagnostico)
+        run: GBA_PROBE=simple python3 gba-port/quick_probe.py real8/src/platforms/gba/REAL8_GBA.gba
       - name: Analisar ROM e separar arquivo final
         run: |
           python3 - <<'PY'
