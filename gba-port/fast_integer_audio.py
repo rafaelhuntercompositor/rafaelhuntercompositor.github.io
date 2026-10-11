@@ -148,6 +148,6 @@ g.write_text(u)
 a=p.read_text()
 old="    if (gen_total <= 0) return;"
 assert old in a
-a=a.replace(old,"    if (gen_total > 274) gen_total = 274;\n"+old,1)
+a=a.replace(old,"    if (gen_total > 137) gen_total = 137;\n"+old,1)
 p.write_text(a)
 print("GBA audio output 8.192 kHz, capped audio debt, preserving sequencer.")
