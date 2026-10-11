@@ -39,7 +39,7 @@ jobs:
           t=make.read_text()
           old="__heap_size=0x10000"
           assert old in t
-          make.write_text(t.replace(old,"__heap_size=0x18000"))
+          make.write_text(t.replace(old,"__heap_size=0x25000"))
           print("Framebuffer PICO-8: 128x128. Heap Lua: 96 KiB.")
           PY
       - name: Liberar 64 KiB de wavetable não utilizada no GBA
