@@ -39,11 +39,11 @@ public final class SanatorioAudioBridge {
     AudioAttributes aa=new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME)
       .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
     pool=new SoundPool.Builder().setAudioAttributes(aa).setMaxStreams(20).build();
-    pool.setOnLoadCompleteListener((p,id,status)->{
+    pool.setOnLoadCompleteListener((p,id,status)->ui.post(()->{
       List<Pending> jobs=pending.remove(id);
       if(status!=0){Log.e(TAG,"SFX failed id="+id+" status="+status);return;}
       if(jobs!=null)for(Pending q:jobs)playLoaded(id,q);
-    });
+    }));
   }
   private static float limit(double value){return (float)Math.max(0,Math.min(1,value));}
   private static boolean safe(String value){return value!=null&&value.matches("[a-zA-Z0-9_-]{1,100}");}
@@ -169,7 +169,7 @@ public final class SanatorioAudioBridge {
       if(ambience!=null)try{if(ambience.isPlaying())ambience.pause();}catch(Exception ignored){}
     });
   }
-  void onAppResume(){ui.post(()->{pausedByApp=false;adjustVolumes();});}
+  void onAppResume(){ui.post(()->{pausedByApp=false;if(ambience!=null)try{if(!ambience.isPlaying())ambience.start();}catch(Exception ignored){}adjustVolumes();});}
   void destroy(){
     ui.post(()->{
       released=true;
