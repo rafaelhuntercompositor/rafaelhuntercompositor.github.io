@@ -71,6 +71,8 @@ jobs:
         run: python3 gba-port/split_parser.py
       - name: Reduzir reservas temporárias do áudio mantendo a reprodução
         run: python3 gba-port/reclaim_audio_ram.py
+      - name: Mostrar erros de execução Lua no mGBA
+        run: python3 gba-port/display_lua_errors.py
       - name: Preparar GBA toolchain
         run: docker pull devkitpro/devkitarm:20260610
       - name: Gerar ROM GBA com áudio ativado
@@ -81,7 +83,7 @@ jobs:
             -e DEVKITPRO=/opt/devkitpro \
             -e DEVKITARM=/opt/devkitpro/devkitARM \
             devkitpro/devkitarm:20260610 \
-            bash -lc 'make -j2 REAL8_GBA_ENABLE_AUDIO=0 REAL8_GBA_FAST_LUA=1 REAL8_GBA_SKIP_VBLANK=1'
+            bash -lc 'make -j2 REAL8_GBA_ENABLE_AUDIO=1 REAL8_GBA_FAST_LUA=1 REAL8_GBA_SKIP_VBLANK=1'
       - name: Mover gráficos e som embutidos no Lua para dados binários
         run: |
           sudo chmod a+w real8/src/platforms/gba/REAL8_GBA.gba
