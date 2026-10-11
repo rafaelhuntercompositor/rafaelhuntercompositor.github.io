@@ -15,12 +15,13 @@ start=slot+16
 src=buf[start+0x4300:start+size].decode()
 variant=os.environ.get("GBA_PROBE","simple")
 if variant=="simple":
- extra="\nfunction _update()\n ticks=(ticks or 0)+1\n timer=(timer or 0)+1\n if timer>100 then state='menu' end\nend\n"
+ a=src.index("function _update()")
+ b=src.index("function theme()",a)
+ src=src[:a]+"function _update()\n ticks=(ticks or 0)+1\n timer=(timer or 0)+1\n if timer>100 then state='menu' end\nend\n\n"+src[b:]
 elif variant=="original":
- extra=""
+ pass
 else:
  raise ValueError(variant)
-src+=extra
 old="midtext('@rafaelgameaudio',108,6)"
 new=old+" print('t='..tostr(timer)..' k='..tostr(ticks),6,118,7)"
 assert old in src
